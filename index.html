@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colisión LAB: Simulador de Cantidad de Movimiento e Impulso</title>
+    <style>
+        :root {
+            --bg-color: #FFF8F0;
+            --panel-bg: #FFFFFF;
+            --text-color: #494258;
+            --accent-lila: #A897DB;
+            --carrito-a: #91C9E8;
+            --carrito-b: #F2A797;
+            --bubble-1: #F7D6E0;
+            --bubble-2: #FFDCC8;
+            --bubble-3: #E4D9F5;
+            --bubble-4: #FFF0BD;
+            --bubble-5: #D8EDE0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Burbujas decorativas de fondo al estilo Canva pastel */
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            z-index: 0;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .screen {
+            display: none;
+            max-width: 1100px;
+            width: 100%;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 1;
+            position: relative;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Pantalla de Inicio */
+        .welcome-card {
+            background-color: var(--panel-bg);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(73, 66, 88, 0.08);
+            border: 2px solid #F3E8FF;
+            margin-top: 20px;
+        }
+
+        .welcome-card h1 {
+            color: var(--text-color);
+            font-size: 32px;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .welcome-card h2 {
+            color: var(--accent-lila);
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .welcome-card p {
+            font-size: 15px;
+            line-height: 1.6;
+            max-width: 750px;
+            margin: 0 auto 25px auto;
+        }
+
+        /* Botones estéticos */
+        .btn {
+            background-color: var(--accent-lila);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(168, 151, 219, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: #E2D9F3;
+            color: var(--text-color);
+            box-shadow: none;
+        }
+
+        /* Header de la Pantalla Principal */
+        header {
+            background-color: var(--panel-bg);
+            padding: 15px 25px;
+            border-radius: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(73, 66, 88, 0.04);
+            border: 1px solid #F3E8FF;
+        }
+
+        /* Layout Principal 2 Columnas */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(73, 66, 88, 0.04);
+            border: 1px solid #F3E8FF;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-color);
+            margin-bottom: 5px;
+            border-bottom: 2px solid #FAF5FF;
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Pestañas (Simulador vs Cuestionario) */
+        .tabs-header {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+
+        .tab-btn {
+            background: #F3E8FF;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-color);
+            font-size: 13px;
+        }
+
+        .tab-btn.active {
+            background: var(--accent-lila);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* Formulario de Entradas por Teclado */
+        .input-card {
+            background: #FAF8FC;
+            padding: 12px;
+            border-radius: 10px;
+            border-left: 4px solid var(--accent-lila);
+            margin-bottom: 8px;
+        }
+
+        .input-card.car-a { border-left-color: var(--carrito-a); }
+        .input-card.car-b { border-left-color: var(--carrito-b); }
+
+        .form-group {
+            margin-bottom: 8px;
+        }
+
+        .form-group:last-child { margin-bottom: 0; }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #E2D9F3;
+            border-radius: 8px;
+            background: white;
+            color: var(--text-color);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* Selector de sentido de la velocidad */
+        .vel-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .vel-row input {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .dir-btn {
+            width: 44px;
+            border: 1px solid #E2D9F3;
+            border-radius: 8px;
+            background: white;
+            color: var(--accent-lila);
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .dir-btn:hover {
+            background: #F3E8FF;
+        }
+
+        /* Canvas Pista */
+        .track-container {
+            position: relative;
+            background: linear-gradient(180deg, #F8FAFC 0%, #EDF2F7 100%);
+            border-radius: 12px;
+            border: 2px solid #E2D9F3;
+            overflow: hidden;
+            height: 200px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sim-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        /* Tarjetas de Resultados Estilizadas */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .result-card {
+            background: #FAF8FC;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #E2D9F3;
+            font-size: 13px;
+        }
+
+        .result-card strong {
+            color: var(--accent-lila);
+        }
+
+        .val-highlight {
+            font-weight: bold;
+            color: #2D2638;
+        }
+
+        /* Fórmulas */
+        .formula-box {
+            background: #FAF5FF;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-lila);
+            font-family: 'Cambria Math', serif;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        /* Cuestionario */
+        .quiz-card {
+            background: #FAF8FC;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #E2D9F3;
+            margin-bottom: 12px;
+        }
+
+        .quiz-option {
+            display: block;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 6px;
+            cursor: pointer;
+            border: 1px solid #E2D9F3;
+            font-size: 13px;
+        }
+
+        .quiz-option:hover {
+            background: #F3E8FF;
+        }
+
+        .feedback {
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .feedback.correct { background: #D8EDE0; color: #166534; }
+        .feedback.incorrect { background: #F7D6E0; color: #991B1B; }
+    </style>
+</head>
+<body>
+
+    <!-- Burbujas decorativas de fondo tipo Canva -->
+    <div class="bubble" style="width: 250px; height: 250px; background: var(--bubble-1); top: -50px; left: -50px;"></div>
+    <div class="bubble" style="width: 300px; height: 300px; background: var(--bubble-2); top: 40%; right: -80px;"></div>
+    <div class="bubble" style="width: 200px; height: 200px; background: var(--bubble-3); bottom: 10%; left: 5%;"></div>
+    <div class="bubble" style="width: 180px; height: 180px; background: var(--bubble-4); top: 10%; right: 20%;"></div>
+    <div class="bubble" style="width: 220px; height: 220px; background: var(--bubble-5); bottom: -60px; right: 30%;"></div>
+
+    <!-- PANTALLA 1: BIENVENIDA -->
+    <div id="screenStart" class="screen active">
+        <div class="welcome-card">
+            <h1>COLISIÓN LAB</h1>
+            <h2>Simulador de cantidad de movimiento lineal e impulso</h2>
+            <p>
+                Representa colisiones entre dos carritos para observar cómo influyen la masa, la velocidad inicial y el tipo de colisión en el movimiento final, relacionando los resultados con las fórmulas físicas estudiadas.
+            </p>
+            <p style="font-style: italic; color: #6E637D; margin-bottom: 25px;">
+                «Explorá el movimiento, observá las colisiones y descubrí la física detrás de cada resultado».
+            </p>
+            <button class="btn" onclick="goToMain()">Explorar simulación ➔</button>
+        </div>
+    </div>
+
+    <!-- PANTALLA 2: PRINCIPAL -->
+    <div id="screenMain" class="screen">
+        <header>
+            <div>
+                <h2 style="margin:0; font-size:18px;">COLISIÓN LAB</h2>
+                <span style="font-size:11px; opacity:0.8;">Simulador Educativo - Integrador IV</span>
+            </div>
+            <button class="btn btn-secondary" onclick="goToStart()" style="padding: 6px 14px; font-size: 13px;">⬅ Volver al inicio</button>
+        </header>
+
+        <!-- Pestañas de Navegación Secundaria -->
+        <div class="tabs-header">
+            <button class="tab-btn active" onclick="switchTab('sim')">🔬 Simulador y Resultados</button>
+            <button class="tab-btn" onclick="switchTab('quiz')">💡 Cuestionario interactivo</button>
+        </div>
+
+        <!-- CONTENIDO PESTAÑA 1: SIMULADOR -->
+        <div id="tabSim" class="tab-content active">
+            <div class="main-layout">
+                
+                <!-- LADO IZQUIERDO: DATOS Y TIPO DE COLISIÓN -->
+                <div class="panel">
+                    <div class="panel-title">📝 Datos iniciales (Ingreso por teclado)</div>
+                    
+                    <div class="input-card car-a">
+                        <h4 style="margin:0 0 6px 0; color:#2563EB; font-size:13px;">Carrito A (Azul pastel)</h4>
+                        <div class="form-group">
+                            <label>Masa (kg):</label>
+                            <input type="number" id="inputMassA" value="2.0" min="0.1" step="0.1" oninput="validateAndCompute()">
+                        </div>
+                        <div class="form-group">
+                            <label>Velocidad inicial (m/s):</label>
+                            <div class="vel-row">
+                                <input type="number" id="inputVelA" value="2.0" step="0.5" oninput="validateAndCompute()">
+                                <button type="button" class="dir-btn" id="dirBtnA" title="Cambiar sentido" onclick="toggleDir('A')">→</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-card car-b">
+                        <h4 style="margin:0 0 6px 0; color:#DC2626; font-size:13px;">Carrito B (Coral suave)</h4>
+                        <div class="form-group">
+                            <label>Masa (kg):</label>
+                            <input type="number" id="inputMassB" value="3.0" min="0.1" step="0.1" oninput="validateAndCompute()">
+                        </div>
+                        <div class="form-group">
+                            <label>Velocidad inicial (m/s):</label>
+                            <div class="vel-row">
+                                <input type="number" id="inputVelB" value="0.0" step="0.5" oninput="validateAndCompute()">
+                                <button type="button" class="dir-btn" id="dirBtnB" title="Cambiar sentido" onclick="toggleDir('B')">→</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-title" style="margin-top: 5px;">⚡ Tipo de colisión</div>
+                    <div class="form-group">
+                        <select id="colType" onchange="validateAndCompute()">
+                            <option value="inelast">Perfectamente inelástica (Quedan unidos)</option>
+                            <option value="elast">Elástica (Rebote ideal)</option>
+                            <option value="semi">Inelástica ordinaria (Separados)</option>
+                        </select>
+                    </div>
+
+                    <div class="panel-title" style="margin-top: 5px;">📘 Fórmulas físicas</div>
+                    <div class="formula-box">
+                        p = m · v<br><small style="color:#6E637D;">Cantidad de movimiento (kg·m/s)</small>
+                    </div>
+                    <div class="formula-box">
+                        Δp = p_f - p_i<br><small style="color:#6E637D;">Cambio en el momento</small>
+                    </div>
+                    <div class="formula-box">
+                        J = F·Δt = Δp<br><small style="color:#6E637D;">Impulso (N·s)</small>
+                    </div>
+                </div>
+
+                <!-- LADO DERECHO: ANIMACIÓN Y RESULTADOS -->
+                <div class="panel">
+                    <div class="panel-title">🚗 Simulación del movimiento</div>
+                    <div class="track-container">
+                        <canvas id="simCanvas" width="650" height="200"></canvas>
+                    </div>
+                    <div class="sim-controls">
+                        <button class="btn" onclick="startSim()" style="background-color: #51CF66; color:white;">Iniciar colisión</button>
+                        <button class="btn btn-secondary" onclick="pauseSim()">Pausar</button>
+                        <button class="btn btn-secondary" onclick="resetSim()" style="color: #C92A2A;">Reiniciar</button>
+                    </div>
+
+                    <div class="panel-title" style="margin-top: 10px;">📊 Resultados calculados</div>
+                    <div class="results-grid">
+                        <div class="result-card">
+                            <strong>Carrito A</strong><br>
+                            p<sub>i</sub>: <span id="resPiA" class="val-highlight">4.00</span> kg·m/s<br>
+                            p<sub>f</sub>: <span id="resPfA" class="val-highlight">1.60</span> kg·m/s<br>
+                            v<sub>f</sub>: <span id="resVFA" class="val-highlight">0.80</span> m/s<br>
+                            Δp = p<sub>f</sub> - p<sub>i</sub>: <span id="resDpA" class="val-highlight">-2.40</span> kg·m/s<br>
+                            J = Δp: <span id="resJA" class="val-highlight">-2.40</span> N·s
+                        </div>
+                        <div class="result-card">
+                            <strong>Carrito B</strong><br>
+                            p<sub>i</sub>: <span id="resPiB" class="val-highlight">0.00</span> kg·m/s<br>
+                            p<sub>f</sub>: <span id="resPfB" class="val-highlight">2.40</span> kg·m/s<br>
+                            v<sub>f</sub>: <span id="resVFB" class="val-highlight">0.80</span> m/s<br>
+                            Δp = p<sub>f</sub> - p<sub>i</sub>: <span id="resDpB" class="val-highlight">2.40</span> kg·m/s<br>
+                            J = Δp: <span id="resJB" class="val-highlight">2.40</span> N·s
+                        </div>
+                        <div class="result-card" style="grid-column: span 2;">
+                            <strong>Sistema Total y Energía</strong><br>
+                            p<sub>total,i</sub>: <span id="resPiTotal" class="val-highlight">4.00</span> kg·m/s | p<sub>total,f</sub>: <span id="resPfTotal" class="val-highlight">4.00</span> kg·m/s<br>
+                            E<sub>c,i</sub>: <span id="resEcI" class="val-highlight">4.00</span> J | E<sub>c,f</sub>: <span id="resEcF" class="val-highlight">1.60</span> J
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- CONTENIDO PESTAÑA 2: CUESTIONARIO -->
+        <div id="tabQuiz" class="tab-content">
+            <div class="panel">
+                <div class="panel-title">💡 Cuestionario interactivo (Dinámico según tus datos)</div>
+                
+                <div class="quiz-card">
+                    <p id="quizQ1Text" style="margin:0 0 8px 0; font-weight:600; font-size:14px;"></p>
+                    <div id="quizQ1Options"></div>
+                    <button class="btn" onclick="checkQ1()" style="margin-top:10px; font-size:13px; padding:6px 16px;">Comprobar respuesta 1</button>
+                    <div id="quizFeedback1" class="feedback"></div>
+                </div>
+
+                <div class="quiz-card">
+                    <p id="quizQ2Text" style="margin:0 0 8px 0; font-weight:600; font-size:14px;"></p>
+                    <div id="quizQ2Options"></div>
+                    <button class="btn" onclick="checkQ2()" style="margin-top:10px; font-size:13px; padding:6px 16px;">Comprobar respuesta 2</button>
+                    <div id="quizFeedback2" class="feedback"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    // Navegación de Pantallas
+    function goToMain() {
+        document.getElementById('screenStart').classList.remove('active');
+        document.getElementById('screenMain').classList.add('active');
+        validateAndCompute();
+        resetSim();
+    }
+
+    function goToStart() {
+        document.getElementById('screenMain').classList.remove('active');
+        document.getElementById('screenStart').classList.add('active');
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        if (tabName === 'sim') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('tabSim').classList.add('active');
+        } else {
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('tabQuiz').classList.add('active');
+            updateQuizDynamic();
+        }
+    }
+
+    // Canvas Simulación
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const CAR_HALF = 24;     // semiancho del carrito (para detectar el contacto)
+    const START_A = 120;     // posición inicial del carrito A
+    const START_B = 540;     // posición inicial del carrito B
+    const SCALE = 2.5;       // píxeles por frame por cada (m/s)
+    const PRE_MAX = 900;     // límite de frames antes de la colisión (evita que se trabe)
+    const POST_MAX = 350;    // límite de frames después de la colisión
+
+    let mA = 2.0, mB = 3.0;
+    let vA_init = 2.0, vB_init = 0.0;
+    let vA_fin = 0.8, vB_fin = 0.8;
+
+    let state = 'IDLE'; // IDLE, RUNNING, COLLIDED, PAUSED
+    let collided = false; // false = antes del choque, true = después
+    let posX_A = START_A;
+    let posX_B = START_B;
+    let frameCount = 0;
+
+    // Rectángulo redondeado compatible con navegadores sin ctx.roundRect
+    function roundedRect(x, y, w, h, r) {
+        let rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y, x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x, y + h, rad);
+        ctx.arcTo(x, y + h, x, y, rad);
+        ctx.arcTo(x, y, x + w, y, rad);
+        ctx.closePath();
+    }
+
+    function validateAndCompute() {
+        let inputMA = document.getElementById('inputMassA');
+        let inputMB = document.getElementById('inputMassB');
+        let inputVA = document.getElementById('inputVelA');
+        let inputVB = document.getElementById('inputVelB');
+        let colType = document.getElementById('colType').value;
+
+        mA = parseFloat(inputMA.value) || 0.1;
+        mB = parseFloat(inputMB.value) || 0.1;
+        vA_init = parseFloat(inputVA.value) || 0;
+        vB_init = parseFloat(inputVB.value) || 0;
+
+        let piA = mA * vA_init;
+        let piB = mB * vB_init;
+        let piTotal = piA + piB;
+        let ecI = 0.5 * mA * vA_init * vA_init + 0.5 * mB * vB_init * vB_init;
+
+        if (colType === 'inelast') {
+            vA_fin = piTotal / (mA + mB);
+            vB_fin = vA_fin;
+        } else if (colType === 'elast') {
+            vA_fin = ((mA - mB) * vA_init + 2 * mB * vB_init) / (mA + mB);
+            vB_fin = ((mB - mA) * vB_init + 2 * mA * vA_init) / (mA + mB);
+        } else {
+            let e = 0.5;
+            let vRel = vB_init - vA_init;
+            vA_fin = (mA * vA_init + mB * vB_init + mB * e * vRel) / (mA + mB);
+            vB_fin = vA_fin - e * vRel;
+        }
+
+        let pfA = mA * vA_fin;
+        let pfB = mB * vB_fin;
+        let pfTotal = pfA + pfB;
+        let ecF = 0.5 * mA * vA_fin * vA_fin + 0.5 * mB * vB_fin * vB_fin;
+
+        // Variación de la cantidad de movimiento e impulso (J = Δp)
+        let dpA = pfA - piA;
+        let dpB = pfB - piB;
+
+        // Actualizar UI Resultados (todo automático según los datos)
+        document.getElementById('resPiA').textContent = piA.toFixed(2);
+        document.getElementById('resPfA').textContent = pfA.toFixed(2);
+        document.getElementById('resVFA').textContent = vA_fin.toFixed(2);
+        document.getElementById('resDpA').textContent = dpA.toFixed(2);
+        document.getElementById('resJA').textContent = dpA.toFixed(2);
+
+        document.getElementById('resPiB').textContent = piB.toFixed(2);
+        document.getElementById('resPfB').textContent = pfB.toFixed(2);
+        document.getElementById('resVFB').textContent = vB_fin.toFixed(2);
+        document.getElementById('resDpB').textContent = dpB.toFixed(2);
+        document.getElementById('resJB').textContent = dpB.toFixed(2);
+
+        document.getElementById('resPiTotal').textContent = piTotal.toFixed(2);
+        document.getElementById('resPfTotal').textContent = pfTotal.toFixed(2);
+        document.getElementById('resEcI').textContent = ecI.toFixed(2);
+        document.getElementById('resEcF').textContent = ecF.toFixed(2);
+
+        updateDirButtons();
+
+        if (state === 'IDLE' || state === 'COLLIDED') resetSim();
+    }
+
+    function updateDirButtons() {
+        let vA = parseFloat(document.getElementById('inputVelA').value) || 0;
+        let vB = parseFloat(document.getElementById('inputVelB').value) || 0;
+        document.getElementById('dirBtnA').textContent = vA < 0 ? '←' : '→';
+        document.getElementById('dirBtnB').textContent = vB < 0 ? '←' : '→';
+    }
+
+    function toggleDir(car) {
+        let input = document.getElementById(car === 'A' ? 'inputVelA' : 'inputVelB');
+        let v = parseFloat(input.value) || 0;
+        input.value = -v;
+        validateAndCompute();
+    }
+
+    function resetPositions() {
+        posX_A = START_A;
+        posX_B = START_B;
+    }
+
+    function resetSim() {
+        state = 'IDLE';
+        collided = false;
+        frameCount = 0;
+        resetPositions();
+        drawScene();
+    }
+
+    function startSim() {
+        if (state === 'RUNNING') return;
+
+        if (state === 'PAUSED') {
+            state = 'RUNNING';
+            if (posX_B - posX_A <= 2 * CAR_HALF) {
+                requestAnimationFrame(animatePost);
+            } else {
+                requestAnimationFrame(animate);
+            }
+            return;
+        }
+
+        // IDLE o COLLIDED -> arranca desde cero
+        resetPositions();
+        collided = false;
+        frameCount = 0;
+
+        if (vA_init === 0 && vB_init === 0) {
+            state = 'IDLE';
+            drawScene();
+            return;
+        }
+
+        state = 'RUNNING';
+        drawScene();
+        requestAnimationFrame(animate);
+    }
+
+    function pauseSim() {
+        if (state === 'RUNNING') state = 'PAUSED';
+    }
+
+    function pastEdge(x) {
+        const margin = CAR_HALF + 10;
+        return x < -margin || x > canvas.width + margin;
+    }
+
+    function animate() {
+        if (state !== 'RUNNING') return;
+
+        frameCount++;
+        posX_A += vA_init * SCALE;
+        posX_B += vB_init * SCALE;
+
+        // Contacto: los carritos se tocan -> pasa a la fase posterior al choque
+        if (posX_B - posX_A <= 2 * CAR_HALF) {
+            let overlap = (2 * CAR_HALF) - (posX_B - posX_A);
+            posX_A -= overlap / 2;
+            posX_B += overlap / 2;
+            frameCount = 0;
+            collided = true;
+            state = 'COLLIDED';
+            drawScene();
+            if (Math.abs(vA_fin) < 1e-6 && Math.abs(vB_fin) < 1e-6) {
+                state = 'IDLE';
+                return;
+            }
+            requestAnimationFrame(animatePost);
+            return;
+        }
+
+        drawScene();
+
+        if (pastEdge(posX_A) || pastEdge(posX_B) || frameCount > PRE_MAX) {
+            state = 'IDLE';
+            return;
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    function animatePost() {
+        if (state !== 'COLLIDED') return;
+
+        frameCount++;
+        posX_A += vA_fin * SCALE;
+        posX_B += vB_fin * SCALE;
+        drawScene();
+
+        // Se detiene cuando los carritos rápidos salen de la pista o se agota el límite
+        const aDone = Math.abs(vA_fin) < 0.5 || pastEdge(posX_A);
+        const bDone = Math.abs(vB_fin) < 0.5 || pastEdge(posX_B);
+
+        if ((aDone && bDone) || frameCount > POST_MAX) {
+            state = 'IDLE';
+            return;
+        }
+
+        requestAnimationFrame(animatePost);
+    }
+
+    function drawScene() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Pista
+        ctx.fillStyle = '#CBD5E1';
+        ctx.fillRect(20, 140, 610, 6);
+        ctx.fillStyle = '#94A3B8';
+        ctx.fillRect(20, 146, 610, 16);
+
+        // Marcas en la pista
+        ctx.fillStyle = '#FFFFFF';
+        for (let x = 70; x <= 570; x += 50) {
+            ctx.fillRect(x, 143, 2, 4);
+        }
+
+        // Velocidades actuales (iniciales antes del choque, finales después)
+        let vA_now = collided ? vA_fin : vA_init;
+        let vB_now = collided ? vB_fin : vB_init;
+
+        drawCar(posX_A, 140, '#91C9E8', 'A', mA, vA_init);
+        drawCar(posX_B, 140, '#F2A797', 'B', mB, vB_init);
+
+        // Datos sobre cada carrito: cantidad de movimiento (arriba) y velocidad (abajo)
+        drawCarData(posX_A, vA_now, mA, '#2563EB');
+        drawCarData(posX_B, vB_now, mB, '#DC2626');
+    }
+
+    function drawCarData(x, v, m, color) {
+        // Cantidad de movimiento p = m · v, con su vector (arriba del carrito)
+        let p = m * v;
+        ctx.fillStyle = color;
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`p = ${p.toFixed(2)}`, x, 66);
+        drawVector(x, 80, p, color, 14, 14, 150);
+
+        // Velocidad v, con su vector (debajo de la pista)
+        ctx.fillStyle = color;
+        ctx.fillText(`v = ${v.toFixed(2)} m/s`, x, 172);
+        drawVector(x, 186, v, color, 25, 14, 130);
+    }
+
+    function drawVector(x, y, value, color, scale, minLen, maxLen) {
+        if (Math.abs(value) < 1e-6) return;
+
+        let len = Math.min(Math.max(Math.abs(value) * scale, minLen), maxLen);
+        let dir = value > 0 ? 1 : -1;
+        let x0 = x - dir * len / 2;
+        let x1 = x + dir * len / 2;
+
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(x0, y);
+        ctx.lineTo(x1, y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y);
+        ctx.lineTo(x1 - dir * 8, y - 5);
+        ctx.lineTo(x1 - dir * 8, y + 5);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    function drawCar(x, y, color, label, mass, vel) {
+        ctx.save();
+        ctx.translate(x, y);
+
+        // Carrocería estilizada con burbujas pasteles
+        ctx.fillStyle = color;
+        roundedRect(-24, -22, 48, 16, 6);
+        ctx.fill();
+
+        // Ventanas
+        ctx.fillStyle = '#FFFFFF';
+        roundedRect(-14, -32, 28, 12, 6);
+        ctx.fill();
+
+        // Llantas
+        ctx.fillStyle = '#494258';
+        ctx.beginPath();
+        ctx.arc(-12, -4, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(12, -4, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(-12, -4, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(12, -4, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Texto etiqueta
+        ctx.fillStyle = '#494258';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Car ${label} (${mass}kg)`, 0, -42);
+
+        ctx.restore();
+    }
+
+    // Cuestionario dinámico
+    function updateQuizDynamic() {
+        let correctPi = (mA * vA_init).toFixed(2);
+        let wrong1 = (mA * vA_init + 2).toFixed(2);
+        let wrong2 = (mA * vA_init - 1).toFixed(2);
+
+        document.getElementById('quizQ1Text').textContent = 
+            `1. Según los datos actuales (Masa A = ${mA} kg, Velocidad A = ${vA_init} m/s), ¿cuál es la cantidad de movimiento inicial del carrito A?`;
+        
+        document.getElementById('quizQ1Options').innerHTML = `
+            <label class="quiz-option"><input type="radio" name="q1" value="correct"> A) ${correctPi} kg·m/s</label>
+            <label class="quiz-option"><input type="radio" name="q1" value="wrong1"> B) ${wrong1} kg·m/s</label>
+            <label class="quiz-option"><input type="radio" name="q1" value="wrong2"> C) ${wrong2} kg·m/s</label>
+        `;
+
+        let colType = document.getElementById('colType').value;
+        let q2Text = "";
+        if (colType === 'elast') {
+            q2Text = "2. En el modelo elástico ideal seleccionado, ¿qué magnitudes totales se conservan?";
+            document.getElementById('quizQ2Options').innerHTML = `
+                <label class="quiz-option"><input type="radio" name="q2" value="wrong"> A) Solamente la energía cinética.</label>
+                <label class="quiz-option"><input type="radio" name="q2" value="correct"> B) La cantidad de movimiento y la energía cinética.</label>
+                <label class="quiz-option"><input type="radio" name="q2" value="wrong"> C) Ninguna de las dos.</label>
+            `;
+        } else if (colType === 'inelast') {
+            q2Text = "2. En la colisión perfectamente inelástica, ¿qué ocurre con los carritos y la energía después del choque?";
+            document.getElementById('quizQ2Options').innerHTML = `
+                <label class="quiz-option"><input type="radio" name="q2" value="correct"> A) Quedan unidos y la energía cinética total disminuye.</label>
+                <label class="quiz-option"><input type="radio" name="q2" value="wrong"> B) Rebotan elásticamente conservando toda la energía.</label>
+                <label class="quiz-option"><input type="radio" name="q2" value="wrong"> C) Se separan con mayor velocidad.</label>
+            `;
+        } else {
+            q2Text = "2. En una colisión inelástica ordinaria (separados), ¿qué sucede con la energía cinética del sistema?";
+            document.getElementById('quizQ2Options').innerHTML = `
+                <label class="quiz-option"><input type="radio" name="q2" value="correct"> A) La energía cinética total disminuye, pero la cantidad de movimiento se conserva.</label>
+                <label class="quiz-option"><input type="radio" name="q2" value="wrong"> B) La energía cinética aumenta debido al impulso.</label>
+                <label class="quiz-option"><input type="radio" name="q2" value="wrong"> C) Se conserva totalmente igual que en el choque elástico.</label>
+            `;
+        }
+        document.getElementById('quizQ2Text').textContent = q2Text;
+        document.getElementById('quizFeedback1').style.display = 'none';
+        document.getElementById('quizFeedback2').style.display = 'none';
+    }
+
+    function checkQ1() {
+        let sel = document.querySelector('input[name="q1"]:checked');
+        let fb = document.getElementById('quizFeedback1');
+        if (!sel) { fb.className = 'feedback incorrect'; fb.textContent = 'Selecciona una opción.'; fb.style.display = 'block'; return; }
+        if (sel.value === 'correct') {
+            fb.className = 'feedback correct';
+            fb.textContent = '¡Correcto! Aplicando p = m · v se obtiene exactamente ese valor con sus unidades (kg·m/s).';
+        } else {
+            fb.className = 'feedback incorrect';
+            fb.textContent = 'Incorrecto. Recuerda multiplicar la masa por la velocidad inicial del carrito A.';
+        }
+        fb.style.display = 'block';
+    }
+
+    function checkQ2() {
+        let sel = document.querySelector('input[name="q2"]:checked');
+        let fb = document.getElementById('quizFeedback2');
+        if (!sel) { fb.className = 'feedback incorrect'; fb.textContent = 'Selecciona una opción.'; fb.style.display = 'block'; return; }
+        if (sel.value === 'correct') {
+            fb.className = 'feedback correct';
+            fb.textContent = '¡Excelente! Comprendes perfectamente el comportamiento físico del modelo seleccionado.';
+        } else {
+            fb.className = 'feedback incorrect';
+            fb.textContent = 'Incorrecto. Revisa las características del tipo de colisión que elegiste.';
+        }
+        fb.style.display = 'block';
+    }
+
+    validateAndCompute();
+</script>
+
+</body>
+</html>
